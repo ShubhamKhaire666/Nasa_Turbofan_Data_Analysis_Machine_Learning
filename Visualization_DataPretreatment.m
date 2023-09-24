@@ -70,18 +70,18 @@ end
 summary(T)
 
 
-% Plot histograms for selected variables (e.g., sensor measurements)
-subplot(3, 1, 1);
-histogram(Train(:, 3));  
-title('Histogram of Operational Setting 1');
-
-subplot(3, 1, 2);
-histogram(Train(:, 4));  
-title('Histogram of Operational Setting 2');
-
-subplot(3, 1, 3);
-histogram(Train(:, 5));  
-title('Histogram of Operational Setting 3');
+% % Plot histograms for selected variables (e.g., sensor measurements)
+% subplot(3, 1, 1);
+% histogram(Train(:, 3));  % Adjust column index as needed
+% title('Histogram of Sensor Measurement 3');
+% 
+% subplot(3, 1, 2);
+% histogram(Train(:, 4));  % Adjust column index as needed
+% title('Histogram of Sensor Measurement 3');
+% 
+% subplot(3, 1, 3);
+% histogram(Train(:, 5));  % Adjust column index as needed
+% title('Histogram of Sensor Measurement 3');
 
 %% Visualization Sensor over time
 
