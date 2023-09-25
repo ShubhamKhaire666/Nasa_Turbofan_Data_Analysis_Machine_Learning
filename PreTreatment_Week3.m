@@ -5,27 +5,23 @@ close all
 % Load Data
 M = readmatrix('data/RUL_FD001.txt');
 
-Test = readmatrix('data/test_FD001.txt');
+% Test = readmatrix('data/test_FD001.txt');
 
-Train = readmatrix('data/train_FD001.txt');
-
-RUL = readmatrix('data/RUL_FD001.txt');
+M = readmatrix('data/train_FD001.txt');
+% 
+% RUL = readmatrix('data/RUL_FD001.txt');
 
 vars =["unit number","time in cycles","op setting 1","op setting 2","op setting 3","sensor measurement 1","sensor measurement 2","sensor measurement 3","sensor measurement 4","sensor measurement5","sensor measurement 6","sensor measurement 7","sensor measurement 8","sensor measurement 9","sensor measurement 10","sensor measurement 11","sensor measurement 12","sensor measurement 13","sensor measurement 14","sensor measurement 15","sensor measurement 16","sensor measurement 17","sensor_measurement 18","sensor measurement 19","sensor measurement 20","sensor measurement 21"];
 
 %% Splitting test data into test and validation (70% test 30% Val)
-no_Test = 0;
-for i = 1:70
-    time = Test(:, 1) == i;
-    no_Test = no_Test + sum(time);
+no_Train = 0;
+for i = 1:80
+    time = M(:, 1) == i;
+    no_Train = no_Train + sum(time);
 end
 
-Testing = Test(1:no_Test,:);
-Validation = Test(no_Test+1:end,:);
-
-%Also partition the response variable
-RULTest = RUL(1:70,:);
-RULValidation = RUL(76:end,:);
+Train = M(1:no_Train,:);
+Testing = M(no_Train+1:end,:);
 
 %% Remove sensor columns with zero standard deviation (constant values)
 Train(:,[6, 10, 11, 15, 21, 23, 24]) = [];
