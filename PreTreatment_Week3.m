@@ -2,102 +2,88 @@ clc
 clear all
 close all
 
-% Load Data
-M = readmatrix('data/RUL_FD001.txt');
-
-% Test = readmatrix('data/test_FD001.txt');
 
 M = readmatrix('data/train_FD001.txt');
-% 
-% RUL = readmatrix('data/RUL_FD001.txt');
-
 vars =["unit number","time in cycles","op setting 1","op setting 2","op setting 3","sensor measurement 1","sensor measurement 2","sensor measurement 3","sensor measurement 4","sensor measurement5","sensor measurement 6","sensor measurement 7","sensor measurement 8","sensor measurement 9","sensor measurement 10","sensor measurement 11","sensor measurement 12","sensor measurement 13","sensor measurement 14","sensor measurement 15","sensor measurement 16","sensor measurement 17","sensor_measurement 18","sensor measurement 19","sensor measurement 20","sensor measurement 21"];
 
-%% Splitting test data into test and validation (70% test 30% Val)
-no_Train = 0;
-for i = 1:80
-    time = M(:, 1) == i;
-    no_Train = no_Train + sum(time);
+%% Calculating RUL
+T = array2table(M);
+T.Properties.VariableNames = vars;
+T = convertvars(T,["unit number"],"categorical");
+
+%Get Max Operating cycles for each engine
+maxOperatingCycles = groupsummary(T,"unit number","max","time in cycles");
+maxOperatingCycles = table2array(maxOperatingCycles(:,"GroupCount"));
+
+%Create new column RUL
+RUL = zeros(length(M),1);
+
+%Populate it 
+for i = 1:length(M)
+    %Max operating cycle - current operating cycle
+    RUL(i) = maxOperatingCycles(M(i,1)) - M(i,2);
 end
+M = [M RUL];
 
-Train = M(1:no_Train,:);
-Testing = M(no_Train+1:end,:);
+%% Remove sensor columns with zero standard deviation (constant values) and operational settings
+M(:,[2,3,4,5,6, 10, 11, 15, 21, 23, 24]) = [];
+vars(:,[2,3,4,5,6, 10, 11, 15, 21, 23, 24]) = [];
 
-%% Remove sensor columns with zero standard deviation (constant values)
-Train(:,[6, 10, 11, 15, 21, 23, 24]) = [];
-vars(:,[6, 10, 11, 15, 21, 23, 24]) = [];
-% changed the array to a table
-trainTable = array2table(Train, 'VariableNames', vars);
+%% Splitting test data into test and validation (80% test 20% Val)
 
-% Get only the sensor data values for further analysis
-sensorData = Train(:,6:end);
+% Calculate the number of data points for each partition
+numDataPoints = 100;
+numTrain = 80;
 
+% Create random indices
+randIndices = randperm(numDataPoints);
+
+trainLog = logical(sum(M(:,1) == randIndices(1:numTrain),2));
+testLog = logical(sum(M(:,1) == randIndices(numTrain+1:end),2));
+
+%X matrices
+XCal = M(trainLog,:);
+XVal = M(testLog,:);
+
+%RUL seperated
+YCal = XCal(:,end);
+YVal = XVal(:,end);
+
+%Remove RUL from XCal and test partition
+XCal(:,end) = [];
+XVal(:,end) = [];
+
+%Store Engine information in seperate array
+ETrain = XCal(:,1);
+ETest = XVal(:,1);
+
+%Removed from XCal and test partition
+XCal(:,1) = [];
+XVal(:,1) = [];
+
+vars(:,1) = [];
+%  Now XCal and XVal contain only sensor data 14 variables
 %% Normalise using z score method
-normalData = zscore(sensorData);
-normalDataTable = array2table(normalData, 'VariableNames', vars(6:end));
+%Center and scale the data
+[XCal, mu, sigma] = zscore(XCal); 
+
+% Apply the calibration center and standard deviation to the validation
+% partition
+XVal = normalize(XVal, 'Center', mu, 'Scale', sigma);
+
+% --------------------------
+% Do we need to center these??
+% YCal   = YCal - mean(YCal);
+% YVal   = YVal - mean(YCal); 
 
 % box plot of sensor values (normalized)
-%Show this plot in the report
-%Explain how the scale of the vriables is quite similar compared to what we
-%saw last week (show previous bar plot)
+normalDataTable = array2table(XCal,"VariableNames",vars);
 figure;
-boxplot(normalDataTable{:,:}); % Excluding the first two columns
+boxplot(normalDataTable{:,:}); 
 xlabel('Variables');
 ylabel('Values');
 title('Box Plot of Sensor data (Normalized)');
-xticklabels(vars(6:end)); % Label x-axis with variable names
+xticklabels(vars); % Label x-axis with variable names
 xtickangle(45); % for better readability
 
-%% Performing PCA on the sensor data
-[coeff,score,latent,T2W,explained]= pca(normalData);
-
-%Variance explained by PC
-explained
-figure()
-pareto(explained);
-xlabel('Principal Component')
-ylabel('Variance Explained (%)')
-title("Variation explained by different PC")
-
-% From the pareto graph it can be seen that top 3 PC explain 80% of data
-
-%% bi plot of first 2 PC
-figure
-biplot(coeff(:,1:2),'Scores',score(:,1:2),'Varlabels',vars(6:end))
-title("Biplot of first 2 PC");
-
-% Barplot to visualize the loading coefficients
-figure('Name', 'Loading bar plot')
-bar(coeff(:,1)');
-xticks(1:length(vars(6:end))); % Set the x-axis tick positions
-xticklabels(vars(6:end)); 
-xlabel('Variables');
-ylabel('Loading Coefficients');
-title('Loading Barplot for the First Principal Component');
-
-%% T2
-%Explain what T2 graph is ans we will be using it to detect outliers
-figure('Name', 'T2 Square Score')
-% Calculate control limits (assuming 3 standard deviations)
-T2_mean = mean(T2W);
-T2_std = std(T2W);
-
-%The outlier boundry is set according to formulae below
-T2_upper_limit = T2_mean + 3 * T2_std;
-
-a = 1:length(T2W);
-plot(a,T2W), hold on
-plot(a,T2_upper_limit*ones(size(T2W)),'r--')
-xlabel("Sample");
-ylabel("T2 Square score");
-
-
-% Remove values that are outliers from score matrix
-score = score(T2W > T2_upper_limit == 0, :);
-
-%bi plot after removal shows some extreme values removed from the biplot
-%above
-figure
-biplot(coeff(:,1:2),'Scores',score(:,1:2),'Varlabels',vars(6:end))
-title("Biplot of first 2 PC");
 
