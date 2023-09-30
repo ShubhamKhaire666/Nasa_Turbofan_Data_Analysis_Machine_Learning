@@ -8,6 +8,16 @@ Test = readmatrix('data/test_FD001.txt');
 
 Train = readmatrix('data/train_FD001.txt');
 
+% Testing and validation partition
+no_Test = 0;
+for i = 1:75
+    time = Test(:, 1) == i;
+    no_Test = no_Test + sum(time);
+end
+
+Testing = Test(1:no_Test,:);
+Validation = Test(no_Test+1:end,:);
+
 %% Check if there are any zero values in the datasets
 % Create a logical matrix where 'true' represents zero values.
 zeroMatrix = (Test == 0);
