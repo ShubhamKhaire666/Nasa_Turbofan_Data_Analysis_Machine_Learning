@@ -74,7 +74,7 @@ XVal = normalize(XVal, 'Center', mu, 'Scale', sigma);
 % YCal   = YCal - mean(YCal);
 % YVal   = YVal - mean(YCal); 
 
-% box plot of sensor values (normalized)
+% box plot of sensor values for calibration data (normalized)
 normalDataTable = array2table(XCal,"VariableNames",vars);
 figure;
 boxplot(normalDataTable{:,:}); 
