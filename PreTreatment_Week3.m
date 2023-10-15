@@ -141,7 +141,23 @@ ylabel("Crossvalidation MSE");
 %% R2
 figure;
 plot(1:14,[modelPLS(1:end).R2])
+title("R2");
+xlabel("No. Latent Variables");
+ylabel("R2");
+
+%% Q2
+figure;
+plot(1:14,[modelPLS(1:end).Q2])
+title("Q2");
+xlabel("No. Latent Variables");
+ylabel("Q2");
+
+%% PRESS
+figure;
+plot(1:14,[modelPLS(1:end).PRESS])
 title("PRESS");
 xlabel("No. Latent Variables");
 ylabel("PRESS");
+
+
 
