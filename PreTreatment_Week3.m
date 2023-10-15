@@ -138,7 +138,7 @@ title("Crossvalidation Mean Squared Error");
 xlabel("No. PCs in model");
 ylabel("Crossvalidation MSE");
 
-%% PRESS
+%% R2
 figure;
 plot(1:14,[modelPLS(1:end).R2])
 title("PRESS");
