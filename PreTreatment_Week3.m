@@ -28,8 +28,6 @@ M(:,[2,3,4,5,6, 10, 11, 15, 21, 23, 24]) = [];
 vars(:,[2,3,4,5,6, 10, 11, 15, 21, 23, 24]) = [];
 
 %% Splitting test data into test and validation (80% test 20% Val)
-
-% Calculate the number of data points for each partition
 numDataPoints = 100;
 numTrain = 80;
 
@@ -55,12 +53,12 @@ XVal(:,end) = [];
 ETrain = XCal(:,1);
 ETest = XVal(:,1);
 
-%Removed from XCal and test partition
+%Remove Engine Number from XCal and test partition
 XCal(:,1) = [];
 XVal(:,1) = [];
 
 vars(:,1) = [];
-%  Now XCal and XVal contain only sensor data 14 variables
+%  Now XCal and XVal contain only sensor data acoounting to 14 variables
 %% Normalise using z score method
 %Center and scale the data
 [XCal, mu, sigma] = zscore(XCal); 
@@ -84,4 +82,66 @@ title('Box Plot of Sensor data (Normalized)');
 xticklabels(vars); % Label x-axis with variable names
 xtickangle(45); % for better readability
 
+%% Calculating the PLS 
+
+for i = 1:size(XCal,2)
+    [modelPLS(i).P , modelPLS(i).T, modelPLS(i).Q, modelPLS(i).U, ...
+        modelPLS(i).beta, modelPLS(i).var, modelPLS(i).MSE, modelPLS(i).stats] = plsregress(XCal, YCal, i);
+
+   % Calculating Yhat
+   n = length(YCal);
+   modelPLS(i).Yhat       = [ones(n,1) XCal] * modelPLS(i).beta;
+ 
+   % Predicting the validation set
+   m = length(YVal);
+   modelPLS(i).YPred    = [ones(m,1) XVal] * modelPLS(i).beta;
+
+   modelPLS(i).TSS      = sum((YCal - mean(YCal)).^2); 
+
+    %R2
+    modelPLS(i).RSS      = sum((YCal - modelPLS(i).Yhat).^2);
+    modelPLS(i).R2       = 1 - modelPLS(i).RSS/modelPLS(i).TSS;
+
+    %Q2
+    modelPLS(i).PRESS    = sum((YVal - modelPLS(i).YPred).^2);
+    modelPLS(i).Q2       = 1 - modelPLS(i).PRESS/modelPLS(i).TSS;
+
+end
+
+%%  Variance explained 
+% figure;
+% plot(1:14,cumsum(100*modelPLS(14).var(2,:)),'-bo');
+% hold on
+% plot(1:14,cumsum(100*modelPLS(14).var(1,:)),'-ro');
+% xlabel('Number of PLS components');
+% ylabel('Percent Variance Explained in y');
+% legend(["Var Explained in Y", "Var Explained in X"]);
+
+%% Bar charts depicting explained variance in Y and X
+figure
+subplot(2,1,1);
+bar(modelPLS(14).var(end,:))
+title("Explained Variance in Y");
+xlabel("PC No.");
+ylabel("Explained Variance");
+
+subplot(2,1,2);
+bar(modelPLS(14).var(1,:))
+title("Explained Variance in X");
+xlabel("PC No.");
+ylabel("Explained Variance");
+
+%% MSE chart
+figure;
+plot(modelPLS(14).MSE(end,:))
+title("Crossvalidation Mean Squared Error");
+xlabel("No. PCs in model");
+ylabel("Crossvalidation MSE");
+
+%% PRESS
+figure;
+plot(1:14,[modelPLS(1:end).R2])
+title("PRESS");
+xlabel("No. Latent Variables");
+ylabel("PRESS");
 
